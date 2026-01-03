@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import AppShell from "../components/layout/AppShell";
 import { Card, CardHeader, CardBody } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Skeleton } from "../components/ui/Skeleton";
 import { ticketsApi } from "../api/tickets";
 import { Link } from "react-router-dom";
+import LiveToggle from "../components/LiveToggle";
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 import { BarChart3, Ticket, Clock, ArrowRight, ShieldCheck, Tag } from "lucide-react";
+import { useAutoRefresh } from "../hooks/useAutoRefresh";
 
 /** =========================
  * MAPPERS (UI label only)
@@ -43,32 +45,39 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [data, setData] = useState(null);
+  const [liveRefresh, setLiveRefresh] = useState(true);
 
   const [activeIndex, setActiveIndex] = useState(-1);
   const onEnter = useCallback((_, idx) => setActiveIndex(idx), []);
   const onLeave = useCallback(() => setActiveIndex(-1), []);
 
-  useEffect(() => {
-    let alive = true;
-
-    async function load() {
-      setLoading(true);
-      setErr("");
-      try {
-        const res = await ticketsApi.dashboard(); // GET /api/tickets/dashboard
-        if (!alive) return;
-        setData(res?.data || res);
-      } catch (e) {
-        if (!alive) return;
-        setErr(e?.response?.data?.message || "Gagal memuat dashboard");
-      } finally {
-        if (alive) setLoading(false);
-      }
-    }
-
-    load();
-    return () => (alive = false);
+  const mountedRef = useRef(true);
+  useEffect(() => () => {
+    mountedRef.current = false;
   }, []);
+
+  const load = useCallback(async () => {
+    if (!mountedRef.current) return;
+
+    setLoading(true);
+    setErr("");
+    try {
+      const res = await ticketsApi.dashboard(); // GET /api/tickets/dashboard
+      if (!mountedRef.current) return;
+      setData(res?.data || res);
+    } catch (e) {
+      if (!mountedRef.current) return;
+      setErr(e?.response?.data?.message || "Gagal memuat dashboard");
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useAutoRefresh(load, { enabled: liveRefresh, interval: 15000 });
 
   const total = data?.total ?? 0;
   const by = data?.byStatus || {};
@@ -94,9 +103,16 @@ export default function Dashboard() {
         </span>
       }
       right={
-        <Link to="/" className="text-sm text-blue-700 hover:underline">
-          Kembali ke Beranda
-        </Link>
+        <div className="flex items-center gap-3">
+          <LiveToggle
+            enabled={liveRefresh}
+            onToggle={() => setLiveRefresh((v) => !v)}
+            label="Live refresh"
+          />
+          <Link to="/" className="text-sm text-blue-700 hover:underline">
+            Kembali ke Beranda
+          </Link>
+        </div>
       }
     >
       {err ? <div className="text-sm text-red-600">{err}</div> : null}
