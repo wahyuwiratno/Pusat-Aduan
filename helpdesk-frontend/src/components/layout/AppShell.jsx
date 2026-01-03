@@ -1,4 +1,5 @@
 import Sidebar from "./Sidebar";
+import Footer from "./Footer";
 
 export default function AppShell({ title, subtitle, right, children }) {
   return (
@@ -40,6 +41,11 @@ export default function AppShell({ title, subtitle, right, children }) {
 
           {/* Content */}
           <div className="mx-auto max-w-6xl px-4 md:px-6 py-6">{children}</div>
+
+          {/* Footer */}
+          <div className="mx-auto max-w-6xl px-4 md:px-6 pb-8">
+            <Footer />
+          </div>
         </main>
       </div>
     </div>
