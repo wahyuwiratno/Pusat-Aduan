@@ -8,6 +8,7 @@ import TicketCreate from "./pages/TicketCreate";
 import TicketEdit from "./pages/TicketEdit";
 import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
+import Footer from "./components/layout/Footer";
 
 export default function App() {
   return (
@@ -66,7 +67,17 @@ export default function App() {
         }
       />
 
-      <Route path="*" element={<div className="p-6">404</div>} />
+      <Route
+        path="*"
+        element={
+          <div className="min-h-screen bg-gray-50 flex flex-col">
+            <div className="flex-1 flex items-center justify-center p-6 text-gray-700">404</div>
+            <div className="max-w-6xl mx-auto w-full px-6 pb-8">
+              <Footer />
+            </div>
+          </div>
+        }
+      />
     </Routes>
   );
 }
