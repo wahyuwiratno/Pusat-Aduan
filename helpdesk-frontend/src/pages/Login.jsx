@@ -121,7 +121,7 @@ export default function Login() {
           </PageTransition>
         </div>
 
-        <div className="mt-10">
+        <div className="mt-10 w-full max-w-6xl mx-auto px-6">
           <Footer />
         </div>
       </div>

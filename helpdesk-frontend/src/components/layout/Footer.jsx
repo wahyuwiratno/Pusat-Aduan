@@ -2,8 +2,8 @@ import { Github, Linkedin, Instagram, ShieldCheck } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="mt-10">
-      <div className="rounded-3xl border border-blue-100/70 bg-white/75 backdrop-blur shadow-[0_10px_30px_-18px_rgba(37,99,235,0.25)]">
+    <footer className="mt-10 w-full">
+      <div className="w-full rounded-3xl border border-blue-100/70 bg-white/75 backdrop-blur shadow-[0_10px_30px_-18px_rgba(37,99,235,0.25)]">
         <div className="px-6 py-5 flex flex-col items-center gap-3 text-center">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
             <ShieldCheck size={16} className="text-blue-600" />
