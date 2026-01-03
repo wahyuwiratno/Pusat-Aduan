@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import AppShell from "../components/layout/AppShell";
@@ -7,8 +7,10 @@ import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { Input, Select } from "../components/ui/Input";
 import { Skeleton } from "../components/ui/Skeleton";
+import LiveToggle from "../components/LiveToggle";
 import { ticketsApi } from "../api/tickets";
 import { useAuth } from "../auth/AuthProvider";
+import { useAutoRefresh } from "../hooks/useAutoRefresh";
 
 import { labels } from "../config/labels";
 import { statusLabel, priorityLabel } from "../config/mappers";
@@ -76,6 +78,7 @@ export default function Home() {
   const [meta, setMeta] = useState({ page: 1, limit: 10, total: 0 });
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [liveRefresh, setLiveRefresh] = useState(true);
 
   // ✅ input search dipisah agar debounce tidak mengubah tampilan
   const [qInput, setQInput] = useState("");
@@ -84,6 +87,11 @@ export default function Home() {
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
   const [page, setPage] = useState(1);
+
+  const mountedRef = useRef(true);
+  useEffect(() => () => {
+    mountedRef.current = false;
+  }, []);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil((meta.total || 0) / (meta.limit || 10))),
@@ -96,34 +104,35 @@ export default function Home() {
     return () => clearTimeout(t);
   }, [qInput]);
 
-  useEffect(() => {
-    let alive = true;
+  const load = useCallback(async () => {
+    if (!mountedRef.current) return;
 
-    async function load() {
-      setLoading(true);
-      setErr("");
-      try {
-        const res = await ticketsApi.list({
-          q: q || undefined,
-          status: status || undefined,
-          priority: priority || undefined,
-          page,
-          limit: 10,
-        });
-        if (!alive) return;
-        setItems(res.data || []);
-        setMeta(res.meta || { page, limit: 10, total: 0 });
-      } catch (e) {
-        if (!alive) return;
-        setErr(e?.response?.data?.message || "Gagal memuat aduan");
-      } finally {
-        if (alive) setLoading(false);
-      }
+    setLoading(true);
+    setErr("");
+    try {
+      const res = await ticketsApi.list({
+        q: q || undefined,
+        status: status || undefined,
+        priority: priority || undefined,
+        page,
+        limit: 10,
+      });
+      if (!mountedRef.current) return;
+      setItems(res.data || []);
+      setMeta(res.meta || { page, limit: 10, total: 0 });
+    } catch (e) {
+      if (!mountedRef.current) return;
+      setErr(e?.response?.data?.message || "Gagal memuat aduan");
+    } finally {
+      if (mountedRef.current) setLoading(false);
     }
+  }, [page, priority, q, status]);
 
+  useEffect(() => {
     load();
-    return () => (alive = false);
-  }, [q, status, priority, page]);
+  }, [load]);
+
+  useAutoRefresh(load, { enabled: liveRefresh, interval: 15000 });
 
   const subtitle =
     user?.role === "staff" ? (
@@ -166,7 +175,13 @@ export default function Home() {
             </span>
           }
           subtitle="Cari aduan, filter status & prioritas."
-          right={<Badge tone="blue">Live</Badge>}
+          right={
+            <LiveToggle
+              enabled={liveRefresh}
+              onToggle={() => setLiveRefresh((v) => !v)}
+              label="Live refresh"
+            />
+          }
         />
         <CardBody className="pt-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
