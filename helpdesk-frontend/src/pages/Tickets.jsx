@@ -1,0 +1,318 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+
+import AppShell from "../components/layout/AppShell";
+import { Card, CardHeader, CardBody } from "../components/ui/Card";
+import { Badge } from "../components/ui/Badge";
+import { Button } from "../components/ui/Button";
+import { Input, Select } from "../components/ui/Input";
+import { Skeleton } from "../components/ui/Skeleton";
+
+import { ticketsApi } from "../api/tickets";
+import { useAuth } from "../auth/AuthProvider";
+
+import { labels } from "../config/labels";
+import { statusLabel, priorityLabel } from "../config/mappers";
+
+import {
+  Search,
+  PlusCircle,
+  Ticket,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  SlidersHorizontal,
+  ShieldCheck,
+  User,
+} from "lucide-react";
+
+function badgeToneStatus(s) {
+  if (s === "open") return "blue";
+  if (s === "in_progress") return "amber";
+  if (s === "resolved") return "green";
+  if (s === "closed") return "gray";
+  return "gray";
+}
+
+function badgeTonePriority(p) {
+  if (p === "high") return "amber";
+  if (p === "medium") return "blue";
+  if (p === "low") return "gray";
+  return "gray";
+}
+
+function useDebouncedValue(value, delay = 350) {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return v;
+}
+
+/** ✅ Perf trick: matikan blur saat scroll (mobile) */
+function useDisableBlurWhileScrolling() {
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    function onScroll() {
+      // set flag scrolling
+      root.setAttribute("data-scrolling", "1");
+
+      // reset timer
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        root.removeAttribute("data-scrolling");
+      }, 120);
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      root.removeAttribute("data-scrolling");
+    };
+  }, []);
+}
+
+export default function Tickets() {
+  const { user } = useAuth();
+
+  // ✅ aktifkan optimasi scroll (khusus blur)
+  useDisableBlurWhileScrolling();
+
+  const [items, setItems] = useState([]);
+  const [meta, setMeta] = useState({ page: 1, limit: 10, total: 0 });
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+
+  const [q, setQ] = useState("");
+  const qDebounced = useDebouncedValue(q, 350);
+
+  const [status, setStatus] = useState("");
+  const [priority, setPriority] = useState("");
+  const [page, setPage] = useState(1);
+
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil((meta.total || 0) / (meta.limit || 10))),
+    [meta]
+  );
+
+  useEffect(() => {
+    let alive = true;
+
+    async function load() {
+      setLoading(true);
+      setErr("");
+      try {
+        const res = await ticketsApi.list({
+          q: qDebounced || undefined,
+          status: status || undefined,
+          priority: priority || undefined,
+          page,
+          limit: 10,
+        });
+        if (!alive) return;
+        setItems(res.data || []);
+        setMeta(res.meta || { page, limit: 10, total: 0 });
+      } catch (e) {
+        if (!alive) return;
+        setErr(e?.response?.data?.message || "Gagal memuat aduan");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      alive = false;
+    };
+  }, [qDebounced, status, priority, page]);
+
+  const subtitle =
+    user?.role === "staff" ? (
+      <span className="inline-flex items-center gap-2">
+        <ShieldCheck size={16} className="text-blue-700" />
+        {labels.allEntities} (staff)
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-2">
+        <User size={16} className="text-blue-700" />
+        {labels.myEntities} (user)
+      </span>
+    );
+
+  return (
+    <AppShell
+      title={labels.entityPlural || "Aduan"}
+      subtitle={
+        <span className="flex items-center gap-2">
+          <Ticket size={16} className="text-blue-700" />
+          {subtitle}
+        </span>
+      }
+      right={
+        <Link to="/tickets/new">
+          <Button className="gap-2">
+            <PlusCircle size={16} />
+            {labels.createEntity}
+          </Button>
+        </Link>
+      }
+    >
+      {/* FILTER */}
+      <Card className="mb-4 border-blue-100 bg-white/80 backdrop-blur shadow-sm glass scroll-contain">
+        <CardHeader
+          title={
+            <span className="flex items-center gap-2">
+              <SlidersHorizontal size={18} className="text-blue-700" />
+              Cari & Filter
+            </span>
+          }
+          subtitle="Cari aduan, filter status & prioritas."
+          right={<Badge tone="blue">Live</Badge>}
+        />
+        <CardBody className="pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="sm:col-span-2 md:col-span-2">
+              <Input
+                value={q}
+                onChange={(e) => {
+                  setPage(1);
+                  setQ(e.target.value);
+                }}
+                placeholder="Cari judul/deskripsi..."
+                leftIcon={<Search size={16} />}
+              />
+            </div>
+
+            <Select
+              value={status}
+              onChange={(e) => {
+                setPage(1);
+                setStatus(e.target.value);
+              }}
+            >
+              <option value="">Semua status</option>
+              <option value="open">Baru</option>
+              <option value="in_progress">Diproses</option>
+              <option value="resolved">Selesai</option>
+              <option value="closed">Ditutup</option>
+            </Select>
+
+            <Select
+              value={priority}
+              onChange={(e) => {
+                setPage(1);
+                setPriority(e.target.value);
+              }}
+            >
+              <option value="">Semua prioritas</option>
+              <option value="low">Rendah</option>
+              <option value="medium">Sedang</option>
+              <option value="high">Tinggi</option>
+            </Select>
+          </div>
+
+          {err ? <div className="mt-3 text-sm text-red-600">{err}</div> : null}
+        </CardBody>
+      </Card>
+
+      {/* LIST */}
+      <Card className="border-blue-100 bg-white/80 backdrop-blur shadow-sm glass cv-auto scroll-contain">
+        <CardHeader
+          title={
+            <span className="flex items-center gap-2">
+              <Ticket size={18} className="text-blue-700" />
+              {labels.entityPlural}
+            </span>
+          }
+          subtitle={`Total: ${meta.total || 0}`}
+          right={
+            user?.role === "staff" ? (
+              <Link to="/dashboard" className="text-sm text-blue-700 hover:underline">
+                Dashboard
+              </Link>
+            ) : (
+              <Badge tone="gray">{labels.myEntities}</Badge>
+            )
+          }
+        />
+
+        <CardBody className="pt-4">
+          {loading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-16 rounded-2xl" />
+              <Skeleton className="h-16 rounded-2xl" />
+              <Skeleton className="h-16 rounded-2xl" />
+            </div>
+          ) : items.length === 0 ? (
+            <div className="text-sm text-gray-600">Belum ada aduan.</div>
+          ) : (
+            <div className="space-y-3">
+              {items.map((t) => (
+                <div
+                  key={t.id}
+                  className="rounded-2xl border border-gray-200 bg-white p-3 flex items-center justify-between gap-3 cv-auto"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className="h-9 w-9 rounded-2xl bg-gradient-to-br from-blue-600 to-sky-500 shadow shadow-blue-600/20 flex items-center justify-center">
+                        <Ticket size={16} className="text-white" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-gray-900 truncate">{t.title}</div>
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          <Badge tone="gray">#{t.id}</Badge>
+                          <Badge tone={badgeToneStatus(t.status)}>{statusLabel(t.status)}</Badge>
+                          <Badge tone={badgeTonePriority(t.priority)}>{priorityLabel(t.priority)}</Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Link
+                    to={`/tickets/${t.id}`}
+                    className="text-sm text-blue-700 hover:underline flex items-center gap-1"
+                  >
+                    Detail <ArrowRight size={14} />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* PAGINATION */}
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm">
+            <div className="text-gray-700">
+              Halaman <span className="font-semibold">{page}</span> / {totalPages}
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="gap-2 w-full sm:w-auto"
+              >
+                <ChevronLeft size={16} />
+                Prev
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="gap-2 w-full sm:w-auto"
+              >
+                Next
+                <ChevronRight size={16} />
+              </Button>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+    </AppShell>
+  );
+}

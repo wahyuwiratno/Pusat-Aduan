@@ -1,0 +1,259 @@
+/* Tailwind v4 — @import harus paling atas */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap");
+@import "tailwindcss";
+
+/* =========================================
+   UTILITIES (WOW)
+   ========================================= */
+@layer utilities {
+  /* Smooth, konsisten untuk semua animasi */
+  .wow-ease {
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Card masuk: fade + slide kecil */
+  .wow-enter {
+    animation: wowEnter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Delay helper biar card masuk bertahap */
+  .wow-delay-1 { animation-delay: 60ms; }
+  .wow-delay-2 { animation-delay: 120ms; }
+  .wow-delay-3 { animation-delay: 180ms; }
+  .wow-delay-4 { animation-delay: 240ms; }
+  .wow-delay-5 { animation-delay: 300ms; }
+
+  /* Hover: naik halus + glow */
+  .wow-hoverlift {
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .wow-hoverlift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px -16px rgba(37, 99, 235, 0.35);
+  }
+
+  /* Skeleton shimmer lebih halus (optional) */
+  .wow-shimmer {
+    background-size: 200% 100%;
+    animation: wowShimmer 1.2s ease-in-out infinite;
+  }
+
+  @keyframes wowEnter {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.99);
+      filter: saturate(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: saturate(1);
+    }
+  }
+
+  @keyframes wowShimmer {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+  }
+
+  /* =========================================
+     AURORA ANIMATION (Expressive mode)
+     ========================================= */
+  @keyframes auroraFloat {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(18px, -12px, 0) scale(1.05); }
+    100% { transform: translate3d(0, 0, 0) scale(1); }
+  }
+  @keyframes auroraFloat2 {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(-16px, 14px, 0) scale(1.06); }
+    100% { transform: translate3d(0, 0, 0) scale(1); }
+  }
+  @keyframes auroraFloat3 {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(10px, 16px, 0) scale(1.04); }
+    100% { transform: translate3d(0, 0, 0) scale(1); }
+  }
+
+  .aurora-float { animation: auroraFloat 10s ease-in-out infinite; }
+  .aurora-float2 { animation: auroraFloat2 12s ease-in-out infinite; }
+  .aurora-float3 { animation: auroraFloat3 14s ease-in-out infinite; }
+
+  /* =========================================
+     PAGE TRANSITION (fade + slide + blur)
+     ========================================= */
+  @keyframes pageIn {
+    0% {
+      opacity: 0;
+      transform: translateY(10px) scale(0.985);
+      filter: blur(6px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+  }
+
+  .page-enter {
+    animation: pageIn 420ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, opacity, filter;
+  }
+}
+
+/* Base global styles (WOW) */
+@layer base {
+  :root {
+    /* Font stack */
+    --font-sans: "Poppins", "Inter", ui-sans-serif, system-ui, -apple-system,
+      "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+
+    /* Optional: radius system (biar konsisten rounded) */
+    --radius-xl: 1.25rem;  /* ~rounded-xl */
+    --radius-2xl: 1.75rem; /* ~rounded-2xl */
+    --radius-3xl: 2.0rem;  /* ~rounded-3xl */
+
+    /* ✅ Safe-area (iPhone notch) */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+  }
+
+  html {
+    font-family: var(--font-sans);
+    text-rendering: geometricPrecision;
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    /* ✅ mobile scroll lebih enak */
+    scroll-behavior: smooth;
+    overscroll-behavior-y: none;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    margin: 0;
+    min-height: 100vh;
+
+    /* ✅ WOW background: aurora + soft gradient (tetap sama) */
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(59,130,246,0.20) 0%, transparent 45%),
+      radial-gradient(900px 520px at 95% 10%, rgba(14,165,233,0.18) 0%, transparent 45%),
+      radial-gradient(900px 520px at 40% 110%, rgba(99,102,241,0.14) 0%, transparent 55%),
+      linear-gradient(to bottom, #f8fafc, #f1f5f9);
+
+    color: #0f172a; /* slate-900 */
+
+    /* ✅ Mobile stability (tanpa mengubah tampilan) */
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+
+    /* ✅ Aman untuk notch/home-indicator */
+    padding-top: var(--safe-top);
+    padding-right: var(--safe-right);
+    padding-bottom: var(--safe-bottom);
+    padding-left: var(--safe-left);
+  }
+
+  /* Pastikan semua elemen form ikut font yang sama */
+  button,
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+
+    /* ✅ Kurangi delay klik & highlight aneh */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ✅ iOS Safari zoom fix saat input (tidak ubah desktop) */
+  @media (max-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+
+  /* Typography polish (lebih startup, tetap aman) */
+  h1, h2, h3, h4 {
+    letter-spacing: -0.02em;
+  }
+
+  /* Media safe (hindari overflow horizontal tidak sengaja) */
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+    height: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* kalau kamu punya kelas wow-enter dsb */
+  .wow-enter {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* =========================================
+   SCROLL OPTIMIZATION (tanpa ubah tampilan)
+   ========================================= */
+
+/* 1) Hindari "layout thrash" kecil yang bikin scroll patah-patah */
+html, body {
+  contain: layout style;
+}
+
+/* 2) Optimasi paint saat scroll untuk elemen dengan efek berat
+      (tidak mengubah tampilan, hanya memberi hint ke browser) */
+.gpu-scroll {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* 3) Browser boleh menunda render konten yang jauh di bawah viewport
+      Ini sangat membantu list panjang (Home/Dashboard)
+      - Tidak mengubah tampilan
+      - Kalau browser tidak support, aman (diabaikan) */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 900px;
+}
+
+/* 4) Kurangi repaint besar di mobile saat scroll (khusus layar kecil)
+      Tidak mengubah tampilan, hanya menstabilkan rendering. */
+@media (max-width: 640px) {
+  /* Elemen blur/transparansi sering bikin repaint di HP.
+     Ini tidak mengubah style kamu, hanya "contain paint" agar repaint tidak menyebar. */
+  .scroll-contain {
+    contain: paint;
+  }
+}
+/* =========================================
+   SCROLL PERF: matikan backdrop-blur saat scrolling (mobile)
+   Tidak mengubah tampilan ketika berhenti scroll
+   ========================================= */
+
+@media (max-width: 768px) {
+  html[data-scrolling="1"] .glass {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+
+}
